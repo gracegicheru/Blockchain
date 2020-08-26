@@ -1,3 +1,5 @@
+MINING_REWARD= 10
+
 genesis_block= {
     'previous_hash':'',
     'index': 0,
@@ -7,6 +9,7 @@ blockchain = [genesis_block]
 
 open_transaction= []
 owner= 'Gracie'
+participants= {'Gracie'}
 
 def hash_block(block):
     return '-'.join([str(block[key]) for key in block])
@@ -15,6 +18,20 @@ def get_last_value():
     if len(blockchain) < 1:
        return None
     return blockchain[-1]
+
+def get_balance(participant):
+    tx_sender= [[tx['amount'] for tx in block['transaction'] if tx['sender']==participant] for block in blockchain]
+    amount_sent= 0
+    for tx in tx_sender:
+        if len(tx)> 0:
+            amount_sent +=tx[0]
+
+    tx_recipient= [[tx['amount'] for tx in block['transaction'] if tx['recipient']==participant] for block in blockchain]
+    amount_received= 0
+    for tx in tx_recipient:
+        if len(tx)> 0:
+            amount_received +=tx[0]
+    return amount_received- amount_sent
 
 
 def add_transaction(recipient, sender= owner, amount= 1.0):
@@ -29,6 +46,8 @@ def add_transaction(recipient, sender= owner, amount= 1.0):
     }
 
     open_transaction.append(transaction)
+    participants.add(sender)
+    participants.add(recipient)
 
 def open_mine():
     last_block= blockchain[-1]
@@ -36,12 +55,19 @@ def open_mine():
 
 
     print(hashed_block)
+    reward_transaction= {
+        'sender':'Mining',
+        'recipient': owner,
+        'amount': MINING_REWARD
+    }
+    open_transaction.append(reward_transaction)
     block= {
         'previous_hash':hashed_block,
         'index': len(blockchain),
         'transaction':open_transaction
     }
     blockchain.append(block)
+    return True
 
 def get_user_input():
     tx_receiver= input("Please enter the recipient name:")
@@ -78,7 +104,9 @@ while True:
     print("A: Mine a block")
     print("2: Output the current Transaction")
     print("3: quit")
-    print("4: manipulate")
+    print("4: output participants")
+    print("5: manipulate")
+   
     user_choice= get_user_choice()
     if user_choice== "1" :
         tx_data= get_user_input()
@@ -86,12 +114,15 @@ while True:
         add_transaction(recipient, amount=amount)
         print(open_transaction)
     elif user_choice== "A":
-        open_mine()
+        if open_mine():
+            open_transaction = []
     elif user_choice == "2" :
         print_blockchain_elements()
     elif user_choice =="3" :
         break
-    elif user_choice == "4":
+    elif user_choice =="4":
+        print(participants)
+    elif user_choice == "5":
         if len(blockchain)>=1:
             blockchain[0]=  {
                'previous_hash':'',
@@ -104,6 +135,7 @@ while True:
     if not verify_chain():
         print("invalid blockchain")
         break
+    print(get_balance('Gracie'))
 else:
     print("User left!")
 print("You're done")
